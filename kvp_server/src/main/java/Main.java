@@ -1,5 +1,6 @@
 import io.atomix.utils.net.Address;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +19,7 @@ public class Main {
 
     //args: [EXTERNAL_PORT] [INTERNAL_PORT] [LOCAL_ID] [IP:PORT ID]...
     //ie: 10000 10010 0 localhost:10011 1
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         int external_port = Integer.parseInt(args[0]);
         int internal_port = Integer.parseInt(args[1]);
         int id = Integer.parseInt(args[2]);

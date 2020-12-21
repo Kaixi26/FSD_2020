@@ -1,5 +1,6 @@
+package Lock;
+
 import Clock.Scalar;
-import com.sun.jmx.remote.internal.ArrayQueue;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 
@@ -26,7 +27,7 @@ public class LockHandler {
     private Queue<CompletableFuture<Void>> promises
             = new ArrayDeque<>(1);
 
-    LockHandler(int id, Map<Integer, Address> peers, NettyMessagingService ms, ScheduledExecutorService es){
+    public LockHandler(int id, Map<Integer, Address> peers, NettyMessagingService ms, ScheduledExecutorService es){
         this.peers = peers;
         clock = new Clock.Vector(id, peers.keySet());
         this.ms = ms;
@@ -82,7 +83,7 @@ public class LockHandler {
         this.sendAsync(address, MESSAGETYPE_CLOCK, buf, "Clock: " + scalar);
     }
 
-    CompletableFuture<Void> lock(){
+    public CompletableFuture<Void> lock(){
         byte[] buf;
         String log;
         CompletableFuture<Void> promise = new CompletableFuture<>();
@@ -101,7 +102,7 @@ public class LockHandler {
         return promise;
     }
 
-    void unlock(){
+    public void unlock(){
         byte[] buf = new byte[1];
         String log = "";
         lock.lock();
@@ -136,6 +137,6 @@ public class LockHandler {
 
     @Override
     public String toString() {
-        return "LockHandler{" + clock + " " + lockQueue + " " + (hasLock ? "L" : "U") + " " + "}";
+        return "Lock.LockHandler{" + clock + " " + lockQueue + " " + (hasLock ? "L" : "U") + " " + "}";
     }
 }

@@ -17,12 +17,12 @@ public class Message {
     private Collection<Long> keys = null;
 
     Message(Map<Long, byte[]> values){
-        type = MAP;
+        this.type = MAP;
         this.values = values;
     }
 
     Message(Collection<Long> keys){
-        type = GET;
+        this.type = GET;
         this.keys = keys;
     }
 
@@ -41,11 +41,11 @@ public class Message {
         if(type == MAP) {
             byte[] encodedMap = TransactionMap.encode(values);
             buffer = ByteBuffer.allocate(Byte.BYTES + encodedMap.length);
-            buffer.put(type);
+            buffer.put(MAP);
             buffer.put(encodedMap);
         } else {
             buffer = ByteBuffer.allocate(Byte.BYTES + Integer.BYTES + Long.BYTES * keys.size());
-            buffer.put(type);
+            buffer.put(GET);
             buffer.putInt(keys.size());
             for(long key : keys) buffer.putLong(key);
         }
@@ -66,4 +66,8 @@ public class Message {
         }
     }
 
+    @Override
+    public String toString() {
+        return "v=" + values + ", k=" + keys;
+    }
 }

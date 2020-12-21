@@ -22,4 +22,12 @@ public class KeyValue {
                 ret.put(key, database.get(key));
         return ret;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder().append("[ ");
+        for(Map.Entry<Long, byte[]> entry : database.entrySet())
+            str.append(entry.getKey()).append("=").append(new String(entry.getValue())).append(" ");
+        return str.append("]").toString();
+    }
 }

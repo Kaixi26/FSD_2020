@@ -1,8 +1,10 @@
+import Lock.LockHandler;
 import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +19,7 @@ public class Server {
     LockHandler lockHandler;
     Transaction.Manager transactionManager;
     Database.KeyValue kvdb = new Database.KeyValue();
+    Client.Handler clientHandler;
 
     public Server(int external_port, int internal_port, int id, Map<Integer, Address> peers){
         this.internal_port = internal_port;
@@ -25,7 +28,7 @@ public class Server {
         this.peers = peers;
     }
 
-    public void start(){
+    public void start() throws IOException {
         ScheduledExecutorService es =
                 Executors.newScheduledThreadPool(1);
 
@@ -37,6 +40,7 @@ public class Server {
 
         lockHandler = new LockHandler(id, peers, ms, es);
         transactionManager = new Transaction.Manager(peers.values(), kvdb, ms, es);
+        clientHandler = new Client.Handler(external_port, kvdb, lockHandler, transactionManager);
 
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -56,6 +60,7 @@ public class Server {
                         break;
                     case ":print":
                         System.out.println(lockHandler);
+                        System.out.println(kvdb);
                     default:
                         break;
                 }
