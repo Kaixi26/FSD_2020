@@ -43,7 +43,8 @@ public class LockHandler {
             handleLockRequest(a, Clock.Scalar.decode(ByteBuffer.wrap(m)));
         }, es);
         ms.registerHandler(MESSAGETYPE_UNLOCK, (a,m) -> {
-            handleUnlockRequest(a, Clock.Scalar.decode(ByteBuffer.wrap(m)));
+            ByteBuffer buffer = ByteBuffer.wrap(m);
+            handleUnlockRequest(a, Clock.Scalar.decode(buffer), Clock.Scalar.decode(buffer));
         }, es);
     }
 
@@ -59,10 +60,12 @@ public class LockHandler {
         acceptIfLockable();
     }
 
-    void handleUnlockRequest(Address address, Clock.Scalar scalar) {
+    void handleUnlockRequest(Address address, Clock.Scalar lockedScalar, Clock.Scalar scalar) {
         lock.lock();
         try {
-            lockQueue.remove(scalar);
+            lockQueue.remove(lockedScalar);
+            clock.updateWith(scalar);
+            acceptIfLockable();
         } catch (Exception e) { e.printStackTrace(); } finally {
             lock.unlock();
         }
@@ -103,22 +106,24 @@ public class LockHandler {
     }
 
     public void unlock(){
-        byte[] buf = new byte[1];
+        ByteBuffer buf = ByteBuffer.allocate(0);
         String log = "";
         lock.lock();
         try {
             if(!hasLock) return;
-            buf = lockQueue.peek().encode();
+            byte[] queueScalar = lockQueue.peek().encode();
             log = lockQueue.peek().toString();
             lockQueue.remove(lockQueue.peek());
             clock.increment();
+            byte[] scalar = clock.getLocal().encode();
+            buf = ByteBuffer.allocate(queueScalar.length + scalar.length).put(queueScalar).put(scalar);
             promises.remove();
             hasLock = false;
         } catch (Exception e ) { e.printStackTrace();} finally {
             lock.unlock();
         }
         for(Address peer : peers.values())
-            sendAsync(peer, MESSAGETYPE_UNLOCK, buf, log);
+            sendAsync(peer, MESSAGETYPE_UNLOCK, buf.array(), log);
     }
 
     void acceptIfLockable(){

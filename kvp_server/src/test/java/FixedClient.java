@@ -1,3 +1,4 @@
+import Client.Stub;
 import Transaction.Transaction;
 
 import java.io.IOException;
@@ -5,43 +6,60 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
 import Transaction.TransactionMap;
 
 import static java.util.concurrent.Executors.defaultThreadFactory;
 
 public class FixedClient {
-    public static void main(String[] args) throws IOException, InterruptedException {
-        Map<Long, byte[]> testMap = new HashMap<>();
-        testMap.put((long) 0, "0".getBytes());
-        testMap.put((long) 1, "2".getBytes());
-        testMap.put((long) 2, "4".getBytes());
-        Map<Long, byte[]> testMap2 = new HashMap<>();
-        testMap2.put((long) 0, "1".getBytes());
-        testMap2.put((long) 3, "6".getBytes());
-        testMap2.put((long) 4, "8".getBytes());
-        Long[] col = {(long)0, (long)1, (long)2, (long) 3, (long) 4};
 
-//        System.out.println(Arrays.toString(TransactionMap.encode(testMap)));
-//        System.out.println(Arrays.toString(TransactionMap.decode(ByteBuffer.wrap(TransactionMap.encode(testMap)))
-//                .entrySet().toArray()));
+    static Random random = new Random();
+
+    static Map<Long, byte[]> randomMap(){
+        Map<Long, byte[]> ret = new HashMap<>();
+        for(int i=0; i<5; i++)
+            ret.put(Math.abs(random.nextLong()) % 10, (""+i).getBytes());
+        return ret;
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
 
         Client.Stub stub = new Client.Stub(new InetSocketAddress("localhost", 10000));
         Client.Stub stub2 = new Client.Stub(new InetSocketAddress("localhost", 10001));
-        stub2.put(testMap).thenAccept(__v -> {
-            stub.put(testMap2).thenAccept(_v -> {
-                System.out.println("Accepted.");
-                stub.get(Arrays.asList(col)).thenAcceptAsync(values -> {
-                    StringBuilder str = new StringBuilder().append("[ ");
-                    for (Map.Entry<Long, byte[]> entry : values.entrySet())
-                        str.append(entry.getKey()).append("=").append(new String(entry.getValue())).append(" ");
-                    System.out.println(str.append("]").toString());
-                });
-            });
-        });
+        Client.Stub stub3 = new Client.Stub(new InetSocketAddress("localhost", 10002));
+
+        sendN(stub, 10);
+        sendN(stub2, 10);
+        sendN(stub3, 10);
+
+        Thread.sleep(1000 * 10);
+    }
+
+    /*
+    public static void main(String[] args) throws IOException, InterruptedException {
+        Client.Stub stub = new Client.Stub(new InetSocketAddress("localhost", 10000));
+        Client.Stub stub2 = new Client.Stub(new InetSocketAddress("localhost", 10001));
+
+        sendN(stub, 100);
+        sendN(stub2, 100);
+        //sendN(stub2, 10);
+        //sendN(stub2, 100);
+//        stub2.put(randomMap()).thenAccept(__v -> {
+//            stub.put(randomMap()).thenAccept(_v -> {
+//                System.out.println("Accepted.");
+//            });
+//        });
 
         Thread.sleep(10000);
     }
+    */
+
+    static void sendN(Stub stub, int n){
+        if(n<=0) return;
+        stub.put(randomMap()).thenAcceptAsync(_v -> {
+            sendN(stub, n-1);
+        });
+    }
+
 }

@@ -41,14 +41,12 @@ public class Stub {
         lock.unlock();
     }
 
-    //TODO: COMPLETABLE FUTURE
     public CompletableFuture<Void> put(Map<Long, byte[]> values){
         if(!turnActive()) return null;
 
         CompletableFuture<Void> ret = new CompletableFuture<>();
         Message message = new Message(values);
         server.write(ByteBuffer.wrap(message.encode())).thenAcceptAsync(wr -> {
-            System.out.println("Sent");
         });
         server.read(buf).thenAcceptAsync(rd -> {
             buf.clear();

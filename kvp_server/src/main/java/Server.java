@@ -3,9 +3,7 @@ import io.atomix.cluster.messaging.MessagingConfig;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -18,7 +16,7 @@ public class Server {
     final Map<Integer, Address> peers;
     LockHandler lockHandler;
     Transaction.Manager transactionManager;
-    Database.KeyValue kvdb = new Database.KeyValue();
+    Database.KeyValue kvdb;
     Client.Handler clientHandler;
 
     public Server(int external_port, int internal_port, int id, Map<Integer, Address> peers){
@@ -26,6 +24,14 @@ public class Server {
         this.external_port = external_port;
         this.id = id;
         this.peers = peers;
+
+        try {
+            BufferedWriter logger = new BufferedWriter(new FileWriter(String.valueOf(external_port) + ".log"));
+            this.kvdb = new Database.KeyValueLogger(logger);
+        } catch (IOException e) {
+            e.printStackTrace();
+            this.kvdb = new Database.KeyValue();
+        }
     }
 
     public void start() throws IOException {
