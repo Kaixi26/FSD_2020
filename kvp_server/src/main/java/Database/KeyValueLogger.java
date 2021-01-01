@@ -14,14 +14,14 @@ public class KeyValueLogger extends KeyValue {
         this.logger = logger;
     }
 
-    public void put(Map<Long, byte[]> values) {
+    public void put(Map<Long, ValueOrServer> values) {
         super.put(values);
-        StringBuilder sb = new StringBuilder();
-        sb.append("[ ");
-        values.entrySet().stream().sorted(Comparator.comparingLong(Entry::getKey))
-                .forEach(entry -> sb.append(entry.getKey()).append(":").append(new String(entry.getValue())).append(" "));
-        sb.append("]");
         try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[ ");
+            values.entrySet().stream().sorted(Comparator.comparingLong(Entry::getKey))
+                    .forEach(e -> sb.append(e.getKey()));
+            sb.append("]");
             logger.write(sb.toString());
             logger.flush();
         } catch (Exception e){

@@ -4,7 +4,7 @@ import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 
 import java.io.*;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -15,7 +15,8 @@ public class Server {
     final int id;
     final Map<Integer, Address> peers;
     LockHandler lockHandler;
-    Transaction.Manager transactionManager;
+    TransactionPut.Manager transactionPutManager;
+    TransactionGet.Manager transactionGetManager;
     Database.KeyValue kvdb;
     Client.Handler clientHandler;
 
@@ -45,8 +46,9 @@ public class Server {
         ms.start().join();
 
         lockHandler = new LockHandler(id, peers, ms, es);
-        transactionManager = new Transaction.Manager(peers.values(), kvdb, ms, es);
-        clientHandler = new Client.Handler(external_port, kvdb, lockHandler, transactionManager);
+        transactionPutManager = new TransactionPut.Manager(id, peers, kvdb, ms, es);
+        transactionGetManager = new TransactionGet.Manager(id, kvdb, peers, ms, es);
+        clientHandler = new Client.Handler(external_port, kvdb, lockHandler, transactionPutManager, transactionGetManager);
 
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -55,15 +57,6 @@ public class Server {
             while (!input.matches("^:q ?.*")) {
                 input = reader.readLine();
                 switch (input) {
-                    case ":put":
-                        lockHandler.lock().thenAcceptAsync((_v)-> {
-                           System.out.println("Lock acquired poggers.");
-                           transactionManager.makeTransaction(new HashMap<>()).thenAcceptAsync((__v) -> {
-                               System.out.println("Transaction finished.");
-                               lockHandler.unlock();
-                           });
-                        });
-                        break;
                     case ":print":
                         System.out.println(lockHandler);
                         System.out.println(kvdb);

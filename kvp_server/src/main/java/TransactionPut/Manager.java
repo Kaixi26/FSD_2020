@@ -1,31 +1,33 @@
-package Transaction;
+package TransactionPut;
 
 import Database.KeyValue;
+import Database.ValueOrServer;
 import io.atomix.cluster.messaging.impl.NettyMessagingService;
 import io.atomix.utils.net.Address;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 public class Manager {
 
-    final private String MESSAGETYPE_CONFIRM = "ConfirmTransaction";
-    final private String MESSAGETYPE_TRANSACTION = "Transaction";
+    final private String MESSAGETYPE_CONFIRM = "ConfirmPutTransaction";
+    final private String MESSAGETYPE_TRANSACTION = "TransactionPut";
 
-    private Collection<Address> peers;
+    final private int local_id;
+    private Map<Integer, Address> peers;
     private long transactionId = 0;
     private KeyValue kvdb;
     private NettyMessagingService ms;
     private Map<Long, Transaction> transactions = new HashMap<>();
     private Lock lock = new ReentrantLock();
 
-    public Manager(Collection<Address> peers, KeyValue kvdb, NettyMessagingService ms, ScheduledExecutorService es){
+    public Manager(int local_id, Map<Integer, Address> peers, KeyValue kvdb, NettyMessagingService ms, ScheduledExecutorService es){
+        this.local_id = local_id;
         this.kvdb = kvdb;
         this.peers = peers;
         this.ms = ms;
@@ -37,16 +39,17 @@ public class Manager {
         }, es);
     }
 
-    public CompletableFuture<Void> makeTransaction(Map<Long, byte[]> values){
-        Transaction transaction = new Transaction(transactionId++, peers, values);
+    public CompletableFuture<Void> makeTransaction(Set<Long> keys){
+        Transaction transaction;
         lock.lock();
         try {
+            transaction = new Transaction(transactionId++, peers.values(), keys, local_id);
             transactions.put(transaction.id, transaction);
         } finally {
             lock.unlock();
         }
         byte[] buf = transaction.encode();
-        for(Address peer : peers)
+        for(Address peer : peers.values())
             ms.sendAsync(peer, MESSAGETYPE_TRANSACTION, buf);
         return transaction.completedTransaction;
     }
@@ -55,7 +58,12 @@ public class Manager {
         byte[] buf = new byte[1];
         lock.lock();
         try {
-            kvdb.put(transaction.values);
+            Set<Long> updatedKeys = transaction.keys;
+            Map<Long, ValueOrServer> values = updatedKeys.stream().collect(Collectors.toMap(
+                    Long::longValue,
+                    _v -> new ValueOrServer(transaction.local_id)
+            ));
+            kvdb.put(values);
             buf = ByteBuffer.allocate(Long.BYTES).putLong(transaction.id).array();
         } finally {
             System.out.println("[Received]" + "[" + MESSAGETYPE_TRANSACTION + "|" + address + "]: " + transaction);

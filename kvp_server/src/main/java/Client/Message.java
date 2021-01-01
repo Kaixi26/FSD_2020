@@ -1,7 +1,6 @@
 package Client;
 
-import Transaction.Transaction;
-import Transaction.TransactionMap;
+import TransactionGet.TransactionMap;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
