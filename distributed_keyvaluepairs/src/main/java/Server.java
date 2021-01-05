@@ -52,17 +52,6 @@ public class Server {
                         System.out.println(lock);
                         System.out.println(database);
                         break;
-                    case "put":
-                        Map<Long, byte[]> tmp = new HashMap<>();
-                        tmp.put((long) 0, "test".getBytes());
-                        tmp.put((long) 1, "test2".getBytes());
-                        put(tmp);
-                        break;
-                    case "get":
-                        Set<Long> tmpSet = new HashSet<>();
-                        tmpSet.add((long)0);
-                        tmpSet.add((long)1);
-                        break;
                     default:
                         break;
                 }
