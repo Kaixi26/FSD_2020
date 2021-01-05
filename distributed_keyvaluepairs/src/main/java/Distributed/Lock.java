@@ -20,6 +20,7 @@ public class Lock {
     final ExecutorService es = Executors.newScheduledThreadPool(1);
     final private PriorityQueue<Scalar> lockQueue
             = new PriorityQueue<>(Scalar::compareWithIdPriority);
+    final private List<Scalar> toRemoveFromQueue = new ArrayList<>();
     final private Queue<CompletableFuture<Scalar>> lockRequests = new ArrayDeque<>(1);
 
     private Clock.Vector vectorClock;
@@ -69,7 +70,9 @@ public class Lock {
     }
 
     private void handleUnlockRequest(Address address, Clock.Scalar lockedScalar, Clock.Scalar scalar) {
-        lockQueue.remove(lockedScalar);
+        if(lockQueue.contains(lockedScalar))
+            lockQueue.remove(lockedScalar);
+        else toRemoveFromQueue.add(lockedScalar);
         vectorClock.updateWith(scalar);
         log("[R]" + "[" + MESSAGETYPE_UNLOCK + "|" + address + "]: " + scalar + " " + this);
         tryLockNext();
@@ -90,26 +93,36 @@ public class Lock {
     }
 
     private void sendLock(Clock.Scalar clock){
-        byte[] buf = clock.encode();
-        String log =  vectorClock.getLocal() + " " + this;
-        vectorClock.increment();
-        for(Address peer : peers.values())
-            send(peer, MESSAGETYPE_LOCK, buf, log);
+        try {
+            byte[] buf = clock.encode();
+            String log = vectorClock.getLocal() + " " + this;
+            vectorClock.increment();
+            for (Address peer : peers.values())
+                send(peer, MESSAGETYPE_LOCK, buf, log);
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     private void sendUnlock(Clock.Scalar clock){
-        hasLock = false;
-        byte[] queueScalar = clock.encode();
-        byte[] scalar = vectorClock.getLocal().encode();
-        ByteBuffer buf = ByteBuffer.allocate(queueScalar.length + scalar.length)
-                .put(queueScalar)
-                .put(scalar);
-        for(Address peer : peers.values())
-            send(peer, MESSAGETYPE_UNLOCK, buf.array(), "Unlocked " + clock.toString());
-        tryLockNext();
+        try {
+            hasLock = false;
+            byte[] queueScalar = clock.encode();
+            byte[] scalar = vectorClock.getLocal().encode();
+            ByteBuffer buf = ByteBuffer.allocate(queueScalar.length + scalar.length)
+                    .put(queueScalar)
+                    .put(scalar);
+            for (Address peer : peers.values())
+                send(peer, MESSAGETYPE_UNLOCK, buf.array(), "Unlocked " + clock.toString());
+            tryLockNext();
+        } catch (Exception e){ e.printStackTrace(); }
     }
 
     private void tryLockNext(){
+        for(int i=0; i<toRemoveFromQueue.size(); i++){
+            if(lockQueue.contains(toRemoveFromQueue.get(i))){
+                lockQueue.remove(toRemoveFromQueue.get(i));
+                toRemoveFromQueue.remove(i--);
+            }
+        }
         if (!hasLock && lockQueue.size() > 0
                 && lockQueue.peek().id == id
                 && vectorClock.succeeds(lockQueue.peek())){

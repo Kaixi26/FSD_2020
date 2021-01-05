@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -19,9 +20,9 @@ public class Stub {
     Lock lock = new ReentrantLock();
     ByteBuffer buf = ByteBuffer.allocate(1024);
 
-    public Stub(SocketAddress address) throws IOException {
+    public Stub(SocketAddress address) throws IOException, ExecutionException, InterruptedException {
         server = new FutureSocketChannel();
-        server.connect(address);
+        server.connect(address).get();
     }
 
     public void close(){

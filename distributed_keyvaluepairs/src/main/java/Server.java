@@ -34,7 +34,7 @@ public class Server {
                         , new MessagingConfig());
         ms.start().join();
 
-        lock = new Distributed.Lock(id, peers, ms, "", false)
+        lock = new Distributed.Lock(id, peers, ms, "", true)
                 .start();
         transaction = new Distributed.Transaction(id, database, peers, ms, "", false)
                 .start();
