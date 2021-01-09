@@ -8,89 +8,77 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class Stub {
 
+    final SocketAddress address;
     FutureSocketChannel server;
     boolean isActive = false;
-    boolean isClosed = false;
-    Lock lock = new ReentrantLock();
+    Boolean isClosed = null;
     ByteBuffer buf = ByteBuffer.allocate(1024);
 
-    public Stub(SocketAddress address) throws IOException, ExecutionException, InterruptedException {
+    public Stub(SocketAddress address) throws IOException {
         server = new FutureSocketChannel();
-        server.connect(address).get();
+        this.address = address;
     }
 
-    public void close(){
-        lock.lock();
-        try {
+    public CompletableFuture<Void> start(){
+        synchronized (this){
+            if(isClosed == null) {
+                isClosed = false;
+                return server.connect(address);
+            }
+            return null;
+        }
+    }
+
+    public void close()  {
+        synchronized (this){
             server.close();
             isClosed = true;
-        } finally {
-            lock.unlock();
         }
     }
 
     boolean turnActive(){
-        lock.lock();
-        try {
-            if (isActive) return false;
+        synchronized (this) {
+            if (isClosed == null || isClosed || isActive) return false;
             isActive = true;
             return true;
-        } finally {
-            lock.unlock();
         }
     }
 
-    void turnInactive(){
-        lock.lock();
-        isActive = false;
-        lock.unlock();
-    }
-
     public CompletableFuture<Void> put(Map<Long, byte[]> values){
-        if(isClosed || !turnActive()) return null;
+        if(!turnActive()) return null;
 
         CompletableFuture<Void> ret = new CompletableFuture<>();
         Message message = new Message(values);
         server.write(ByteBuffer.wrap(message.encode())).thenAcceptAsync(wr -> {
         });
         server.read(buf).thenAcceptAsync(rd -> {
-            lock.lock();
-            try {
+            synchronized (this){
                 buf.clear();
-                turnInactive();
+                isActive = false;
                 ret.complete((Void) null);
-            } catch (Exception e){
-                e.printStackTrace();
-            } finally {
-                lock.unlock();
             }
         });
         return ret;
     }
 
     public CompletableFuture<Map<Long, byte[]>> get(Collection<Long> keys){
-        if(isClosed || !turnActive()) return null;
+        if(!turnActive()) return null;
 
         CompletableFuture<Map<Long, byte[]>> ret = new CompletableFuture<>();
         Message message = new Message(keys);
         server.write(ByteBuffer.wrap(message.encode())).thenAcceptAsync(wr -> {
         });
         server.read(buf).thenAcceptAsync(rd -> {
-            try {
+            synchronized (this){
                 buf.flip();
                 Message messageRecv = Message.decode(buf);
                 buf.clear();
-                turnInactive();
+                isActive = false;
                 if (messageRecv != null) ret.complete(messageRecv.getValues());
                 else ret.complete(null);
-            } finally {
-                lock.unlock();
             }
         });
         return ret;

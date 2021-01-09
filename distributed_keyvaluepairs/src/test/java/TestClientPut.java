@@ -20,8 +20,10 @@ public class TestClientPut {
 
     static void checkWithN(int stubs, int maxSends, int[] ports) throws Exception {
         Stub[] stub = new Stub[stubs];
-        for(int i=0; i<stub.length; i++)
+        for(int i=0; i<stub.length; i++) {
             stub[i] = new Stub(new InetSocketAddress("localhost", ports[Math.abs(random.nextInt()) % ports.length]));
+            stub[i].start().get();
+        }
         synchronized (sync) { active = stub.length;}
         int numPut = maxSends; // Math.abs(random.nextInt()) % maxSends;
         for(int i=0; i<stub.length; i++)
