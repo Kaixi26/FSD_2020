@@ -34,29 +34,12 @@ public class Server {
                         , new MessagingConfig());
         ms.start().join();
 
-        lock = new Distributed.Lock(id, peers, ms, "", true)
+        lock = new Distributed.Lock(id, peers, ms, "", false)
                 .start();
         transaction = new Distributed.Transaction(id, database, peers, ms, "", false)
                 .start();
         clientHandler = new Handler(external_port, lock, transaction, database)
                 .start();
-
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        String input = "";
-        try {
-            while (!input.matches("^:q ?.*")) {
-                input = reader.readLine();
-                switch (input) {
-                    case "print":
-                        System.out.println(lock);
-                        System.out.println(database);
-                        break;
-                    default:
-                        break;
-                }
-            }
-        } catch (Exception e){}
 
         return this;
     }

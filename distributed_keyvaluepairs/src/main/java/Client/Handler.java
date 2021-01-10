@@ -36,7 +36,7 @@ public class Handler {
         server.accept().thenAcceptAsync(client -> {
             try {
                 //System.out.println("[R][Client Connect]");
-                ByteBuffer buf = ByteBuffer.allocate(1024);
+                ByteBuffer buf = ByteBuffer.allocate(10240);
                 handleClient(client, buf);
                 acceptConnections();
             } catch (Exception e) {

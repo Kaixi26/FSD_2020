@@ -15,7 +15,7 @@ public class Stub {
     FutureSocketChannel server;
     boolean isActive = false;
     Boolean isClosed = null;
-    ByteBuffer buf = ByteBuffer.allocate(1024);
+    ByteBuffer buf = ByteBuffer.allocate(10240);
 
     public Stub(SocketAddress address) throws IOException {
         server = new FutureSocketChannel();
