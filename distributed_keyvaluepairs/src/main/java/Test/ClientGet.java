@@ -1,5 +1,6 @@
+package Test;
+
 import Client.Stub;
-import jdk.nashorn.internal.runtime.ECMAException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -7,7 +8,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-public class TestClientGet {
+public class ClientGet {
     static Random random = new Random();
 
     static int active = 0;
